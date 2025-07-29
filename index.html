@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ユグドラ幻想戦記 -Prototype-</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- タイトル画面 -->
+    <div id="title-screen" class="screen">
+        <div class="title-logo">
+            <svg width="300" height="120" viewBox="0 0 300 120">
+                <defs>
+                    <linearGradient id="titleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#4fc3f7"/>
+                        <stop offset="100%" style="stop-color:#9c27b0"/>
+                    </linearGradient>
+                </defs>
+                <text x="150" y="40" text-anchor="middle" font-size="28" font-weight="bold" fill="url(#titleGradient)">ユグドラ幻想戦記</text>
+                <text x="150" y="70" text-anchor="middle" font-size="16" fill="#ffffff">-Prototype-</text>
+                <circle cx="50" cy="90" r="8" fill="#4fc3f7" opacity="0.7">
+                    <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+                </circle>
+                <circle cx="250" cy="90" r="8" fill="#9c27b0" opacity="0.7">
+                    <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+                </circle>
+            </svg>
+        </div>
+        <button id="start-btn" class="btn">はじめる</button>
+        <div class="stage-select">
+            <label for="stage-selector">ステージ選択:</label>
+            <select id="stage-selector">
+                <option value="1">第1面 - 森の入口</option>
+                <option value="2">第2面 - 古い遺跡</option>
+                <option value="3">第3面 - 暗黒の洞窟</option>
+                <option value="4">第4面 - 氷の神殿</option>
+                <option value="5">第5面 - 炎の火山</option>
+                <option value="6">第6面 - 嵐の高原</option>
+                <option value="7">第7面 - 毒の沼地</option>
+                <option value="8">第8面 - 光の塔</option>
+                <option value="9">第9面 - 闇の城</option>
+                <option value="10">第10面 - 世界樹の根元</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- ストーリー画面 -->
+    <div id="story-screen" class="screen hidden">
+        <div class="story-content">
+            <svg width="400" height="200" viewBox="0 0 400 200" class="story-image">
+                <defs>
+                    <radialGradient id="treeGradient" cx="50%" cy="50%">
+                        <stop offset="0%" style="stop-color:#4caf50"/>
+                        <stop offset="100%" style="stop-color:#1b5e20"/>
+                    </radialGradient>
+                </defs>
+                <rect width="400" height="200" fill="#1a237e"/>
+                <ellipse cx="200" cy="120" rx="80" ry="100" fill="url(#treeGradient)"/>
+                <text x="200" y="30" text-anchor="middle" font-size="16" fill="#ffffff">世界樹ユグドラシル</text>
+            </svg>
+            <div class="story-text">
+                <p id="story-content">世界樹ユグドラシルが枯れ始めた...</p>
+            </div>
+        </div>
+        <button id="story-next-btn" class="btn">戦闘開始</button>
+    </div>
+
+    <!-- バトル画面 -->
+    <div id="battle-screen" class="screen hidden">
+        <div class="game-info">
+            <div class="stage-info">
+                <span id="current-stage">第1面 - 森の入口</span>
+            </div>
+            <div class="turn-info">
+                <span id="current-turn">プレイヤーのターン</span>
+                <span id="summon-gauge">召喚ゲージ: <span id="gauge-value">0</span>/3</span>
+            </div>
+            <div class="player-status">
+                <span>HP: <span id="player-hp">120</span>/120</span>
+            </div>
+        </div>
+
+        <div id="battle-map" class="battle-map"></div>
+
+        <div class="action-buttons">
+            <button id="move-btn" class="action-btn">移動</button>
+            <button id="attack-btn" class="action-btn">攻撃</button>
+            <button id="summon-btn" class="action-btn" disabled>機兵召喚</button>
+            <button id="end-turn-btn" class="action-btn">ターン終了</button>
+        </div>
+    </div>
+
+    <!-- SVGキャラクター定義 -->
+    <div id="svg-characters" style="display: none;">
+        <!-- プレイヤーキャラクター（聖騎士風） - 1.1倍 -->
+        <svg id="player-svg" width="50" height="50" viewBox="0 0 45 45">
+            <defs>
+                <radialGradient id="playerGradient" cx="50%" cy="30%">
+                    <stop offset="0%" style="stop-color:#64b5f6"/>
+                    <stop offset="100%" style="stop-color:#1976d2"/>
+                </radialGradient>
+                <linearGradient id="capeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#c62828"/>
+                    <stop offset="100%" style="stop-color:#8e24aa"/>
+                </linearGradient>
+                <linearGradient id="swordGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#ffd54f"/>
+                    <stop offset="100%" style="stop-color:#ff8f00"/>
+                </linearGradient>
+                <filter id="knightGlow">
+                    <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#4fc3f7"/>
+                </filter>
+            </defs>
+            
+            <!-- マント -->
+            <path d="M15 18 Q22 12 30 18 L28 35 Q22 32 16 35 Z" fill="url(#capeGradient)" opacity="0.8"/>
+            
+            <!-- 騎士の体（鎧） -->
+            <ellipse cx="22" cy="25" rx="10" ry="12" fill="url(#playerGradient)" filter="url(#knightGlow)"/>
+            
+            <!-- 胸甲の装飾 -->
+            <rect x="19" y="20" width="6" height="8" rx="1" fill="#1565c0"/>
+            <circle cx="22" cy="24" r="2" fill="#ffd54f"/>
+            
+            <!-- 騎士の頭（兜） -->
+            <circle cx="22" cy="15" r="7" fill="#37474f"/>
+            <rect x="18" y="12" width="8" height="4" rx="2" fill="#263238"/>
+            
+            <!-- 兜の装飾 -->
+            <rect x="20" y="10" width="4" height="2" fill="#ffd54f"/>
+            <circle cx="22" cy="15" r="3" fill="#1976d2" opacity="0.7"/>
+            
+            <!-- 聖剣エクスカリバー -->
+            <rect x="35" y="5" width="4" height="25" fill="url(#swordGradient)" filter="url(#knightGlow)"/>
+            <rect x="33" y="3" width="8" height="4" fill="#8d6e63"/>
+            <polygon points="37,5 37,1 39,1 39,5" fill="#ffd54f"/>
+            
+            <!-- 盾 -->
+            <ellipse cx="8" cy="20" rx="5" ry="8" fill="#37474f"/>
+            <path d="M8 14 L11 17 L8 20 L5 17 Z" fill="#ffd54f"/>
+            
+            <!-- アニメーション効果 -->
+            <animateTransform attributeName="transform" type="translate" 
+                values="0,0; 0,-1; 0,0" dur="2s" repeatCount="indefinite"/>
+            
+            <!-- 聖なる光のエフェクト -->
+            <circle cx="22" cy="22" r="15" fill="none" stroke="#4fc3f7" stroke-width="1" opacity="0.5">
+                <animate attributeName="r" values="15;18;15" dur="3s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.5;0.2;0.5" dur="3s" repeatCount="indefinite"/>
+            </circle>
+        </svg>
+
+        <!-- ゴブリン（凶暴化） - 1.1倍 -->
+        <svg id="goblin-svg" width="44" height="44" viewBox="0 0 40 40">
+            <defs>
+                <radialGradient id="goblinGradient" cx="50%" cy="50%">
+                    <stop offset="0%" style="stop-color:#689f38"/>
+                    <stop offset="100%" style="stop-color:#2e7d32"/>
+                </radialGradient>
+                <filter id="goblinShadow">
+                    <feDropShadow dx="2" dy="2" stdDeviation="1" flood-color="#1b5e20"/>
+                </filter>
+            </defs>
+            
+            <!-- ゴブリンの体（筋肉質） -->
+            <ellipse cx="20" cy="25" rx="12" ry="10" fill="url(#goblinGradient)" filter="url(#goblinShadow)"/>
+            
+            <!-- 筋肉の線 -->
+            <path d="M15 22 Q20 20 25 22" stroke="#2e7d32" stroke-width="2" fill="none"/>
+            <path d="M16 26 Q20 24 24 26" stroke="#2e7d32" stroke-width="1" fill="none"/>
+            
+            <!-- ゴブリンの頭 -->
+            <circle cx="20" cy="15" r="8" fill="#558b2f" filter="url(#goblinShadow)"/>
+            
+            <!-- 尖った耳 -->
+            <polygon points="12,12 8,8 14,10" fill="#558b2f"/>
+            <polygon points="28,12 32,8 26,10" fill="#558b2f"/>
+            
+            <!-- 凶暴な目 -->
+            <circle cx="17" cy="13" r="2" fill="#d32f2f"/>
+            <circle cx="23" cy="13" r="2" fill="#d32f2f"/>
+            <circle cx="17" cy="12" r="1" fill="#ffffff"/>
+            <circle cx="23" cy="12" r="1" fill="#ffffff"/>
+            
+            <!-- 鋭い牙 -->
+            <polygon points="16,17 18,22 14,20" fill="#ffffff"/>
+            <polygon points="24,17 26,22 22,20" fill="#ffffff"/>
+            
+            <!-- 鼻 -->
+            <ellipse cx="20" cy="16" rx="1" ry="2" fill="#2e7d32"/>
+            
+            <!-- 戦斧 -->
+            <rect x="32" y="8" width="3" height="20" fill="#5d4037"/>
+            <polygon points="30,6 35,6 35,12 32,10 30,12" fill="#424242"/>
+            <circle cx="32" cy="9" r="1" fill="#f44336"/>
+            
+            <!-- 怒りのオーラ -->
+            <circle cx="20" cy="20" r="18" fill="none" stroke="#f44336" stroke-width="1" opacity="0.3">
+                <animate attributeName="r" values="18;22;18" dur="1.5s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.3;0.1;0.3" dur="1.5s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- 激しい動きアニメーション -->
+            <animateTransform attributeName="transform" type="rotate" 
+                values="0 20 20; 3 20 20; -3 20 20; 0 20 20" dur="2s" repeatCount="indefinite"/>
+        </svg>
+
+        <!-- オーク戦士（巨大化） - 1.1倍 -->
+        <svg id="orc-svg" width="50" height="50" viewBox="0 0 45 45">
+            <defs>
+                <radialGradient id="orcGradient" cx="50%" cy="40%">
+                    <stop offset="0%" style="stop-color:#d84315"/>
+                    <stop offset="100%" style="stop-color:#bf360c"/>
+                </radialGradient>
+                <linearGradient id="armorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#424242"/>
+                    <stop offset="100%" style="stop-color:#212121"/>
+                </linearGradient>
+                <filter id="orcShadow">
+                    <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000000"/>
+                </filter>
+            </defs>
+            
+            <!-- オークの体（重装備） -->
+            <ellipse cx="22" cy="28" rx="14" ry="12" fill="url(#orcGradient)" filter="url(#orcShadow)"/>
+            
+            <!-- 鎧の胸当て -->
+            <rect x="16" y="22" width="12" height="10" rx="2" fill="url(#armorGradient)"/>
+            <rect x="18" y="24" width="8" height="2" fill="#616161"/>
+            <rect x="19" y="27" width="6" height="2" fill="#616161"/>
+            
+            <!-- オークの頭（戦闘用兜） -->
+            <circle cx="22" cy="17" r="9" fill="#c62828" filter="url(#orcShadow)"/>
+            
+            <!-- 角付き兜 -->
+            <polygon points="15,8 17,16 13,14" fill="#212121"/>
+            <polygon points="30,8 32,16 28,14" fill="#212121"/>
+            <rect x="18" y="12" width="8" height="6" rx="1" fill="#212121"/>
+            
+            <!-- 凶暴な目 -->
+            <circle cx="19" cy="15" r="2" fill="#ffeb3b"/>
+            <circle cx="25" cy="15" r="2" fill="#ffeb3b"/>
+            <rect x="18" y="14" width="2" height="2" fill="#000000"/>
+            <rect x="24" y="14" width="2" height="2" fill="#000000"/>
+            
+            <!-- 巨大な牙 -->
+            <polygon points="17,18 19,24 15,22" fill="#ffffff"/>
+            <polygon points="27,18 29,24 25,22" fill="#ffffff"/>
+            
+            <!-- 戦闘用メイス -->
+            <rect x="35" y="10" width="4" height="18" fill="#5d4037"/>
+            <circle cx="37" cy="8" r="3" fill="#424242"/>
+            <polygon points="34,6 40,6 39,4 35,4" fill="#424242"/>
+            <polygon points="34,10 40,10 39,12 35,12" fill="#424242"/>
+            
+            <!-- 肩当て -->
+            <ellipse cx="12" cy="20" rx="4" ry="6" fill="url(#armorGradient)"/>
+            <ellipse cx="32" cy="20" rx="4" ry="6" fill="url(#armorGradient)"/>
+            
+            <!-- 威圧感のエフェクト -->
+            <circle cx="22" cy="22" r="20" fill="none" stroke="#d32f2f" stroke-width="2" opacity="0.4">
+                <animate attributeName="r" values="20;25;20" dur="2s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.4;0.1;0.4" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- 重厚な動きアニメーション -->
+            <animateTransform attributeName="transform" type="scale" 
+                values="1,1; 1.05,1.05; 1,1" dur="3s" repeatCount="indefinite"/>
+        </svg>
+
+        <!-- ベヒーモス（最終ボス・究極形態） - 1.1倍 -->
+        <svg id="behemoth-svg" width="61" height="61" viewBox="0 0 55 55">
+            <defs>
+                <radialGradient id="behemothGradient" cx="50%" cy="30%">
+                    <stop offset="0%" style="stop-color:#1a1a1a"/>
+                    <stop offset="50%" style="stop-color:#424242"/>
+                    <stop offset="100%" style="stop-color:#000000"/>
+                </radialGradient>
+                <linearGradient id="fireGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#ff5722"/>
+                    <stop offset="50%" style="stop-color:#f44336"/>
+                    <stop offset="100%" style="stop-color:#d32f2f"/>
+                </linearGradient>
+                <filter id="demonShadow">
+                    <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ff1744"/>
+                </filter>
+                <filter id="hellfire">
+                    <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#ff6d00"/>
+                </filter>
+            </defs>
+            
+            <!-- 巨大な翼 -->
+            <path d="M5 25 Q15 10 27 25 Q15 20 5 30" fill="#212121" opacity="0.8" filter="url(#demonShadow)"/>
+            <path d="M28 25 Q40 10 50 25 Q40 20 28 30" fill="#212121" opacity="0.8" filter="url(#demonShadow)"/>
+            
+            <!-- 翼の骨格 -->
+            <path d="M8 15 L12 25 L16 20 L20 28" stroke="#424242" stroke-width="2" fill="none"/>
+            <path d="M47 15 L43 25 L39 20 L35 28" stroke="#424242" stroke-width="2" fill="none"/>
+            
+            <!-- ベヒーモスの体（超巨大） -->
+            <ellipse cx="27" cy="32" rx="18" ry="14" fill="url(#behemothGradient)" filter="url(#demonShadow)"/>
+            
+            <!-- 胸の魔法陣 -->
+            <circle cx="27" cy="30" r="6" fill="none" stroke="#ff1744" stroke-width="2"/>
+            <polygon points="27,25 30,28 27,31 24,28" fill="#ff1744"/>
+            <circle cx="27" cy="28" r="2" fill="#ff6d00"/>
+            
+            <!-- ベヒーモスの頭（悪魔的） -->
+            <circle cx="27" cy="20" r="12" fill="#000000" filter="url(#hellfire)"/>
+            
+            <!-- 巨大な角 -->
+            <polygon points="20,8 22,18 18,16" fill="url(#fireGradient)" filter="url(#hellfire)"/>
+            <polygon points="35,8 37,18 33,16" fill="url(#fireGradient)" filter="url(#hellfire)"/>
+            <polygon points="15,10 17,20 13,18" fill="#d32f2f"/>
+            <polygon points="40,10 42,20 38,18" fill="#d32f2f"/>
+            
+            <!-- 地獄の炎の目 -->
+            <circle cx="23" cy="18" r="3" fill="#ff1744" filter="url(#hellfire)">
+                <animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="31" cy="18" r="3" fill="#ff1744" filter="url(#hellfire)">
+                <animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="23" cy="17" r="1" fill="#ffffff"/>
+            <circle cx="31" cy="17" r="1" fill="#ffffff"/>
+            
+            <!-- 恐ろしい口 -->
+            <path d="M20 23 Q27 28 34 23" stroke="#ff1744" stroke-width="3" fill="none"/>
+            <polygon points="22,24 24,28 20,26" fill="#ffffff"/>
+            <polygon points="30,24 32,28 28,26" fill="#ffffff"/>
+            <polygon points="33,24 35,28 31,26" fill="#ffffff"/>
+            
+            <!-- 腕の爪 -->
+            <ellipse cx="10" cy="32" rx="3" ry="8" fill="#212121"/>
+            <polygon points="8,28 10,32 6,30" fill="#424242"/>
+            <ellipse cx="44" cy="32" rx="3" ry="8" fill="#212121"/>
+            <polygon points="46,28 48,32 44,30" fill="#424242"/>
+            
+            <!-- 地獄の炎のオーラ -->
+            <circle cx="27" cy="27" r="25" fill="none" stroke="url(#fireGradient)" stroke-width="2" opacity="0.6">
+                <animate attributeName="r" values="25;30;25" dur="1.5s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.6;0.2;0.6" dur="1.5s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- 地獄の火の粒子 -->
+            <circle cx="20" cy="15" r="1" fill="#ff6d00">
+                <animateTransform attributeName="transform" type="translate" 
+                    values="0,0; -3,-5; 0,0" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="34" cy="15" r="1" fill="#ff6d00">
+                <animateTransform attributeName="transform" type="translate" 
+                    values="0,0; 3,-5; 0,0" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- 威圧的な動きアニメーション -->
+            <animateTransform attributeName="transform" type="translate" 
+                values="0,0; 0,-2; 0,0" dur="1.2s" repeatCount="indefinite"/>
+        </svg>
+
+        <!-- スケルトン（不死の戦士） - 1.1倍 -->
+        <svg id="skeleton-svg" width="44" height="44" viewBox="0 0 40 40">
+            <defs>
+                <radialGradient id="skeletonGradient" cx="50%" cy="50%">
+                    <stop offset="0%" style="stop-color:#f5f5f5"/>
+                    <stop offset="100%" style="stop-color:#bdbdbd"/>
+                </radialGradient>
+                <filter id="boneShadow">
+                    <feDropShadow dx="1" dy="1" stdDeviation="1" flood-color="#424242"/>
+                </filter>
+            </defs>
+            
+            <!-- スケルトンの体（骨格） -->
+            <ellipse cx="20" cy="26" rx="10" ry="8" fill="url(#skeletonGradient)" filter="url(#boneShadow)"/>
+            
+            <!-- 肋骨 -->
+            <path d="M15 22 Q20 20 25 22" stroke="#9e9e9e" stroke-width="2" fill="none"/>
+            <path d="M16 25 Q20 23 24 25" stroke="#9e9e9e" stroke-width="2" fill="none"/>
+            <path d="M17 28 Q20 26 23 28" stroke="#9e9e9e" stroke-width="1" fill="none"/>
+            
+            <!-- 脊椎 -->
+            <circle cx="20" cy="24" r="1" fill="#9e9e9e"/>
+            <circle cx="20" cy="26" r="1" fill="#9e9e9e"/>
+            <circle cx="20" cy="28" r="1" fill="#9e9e9e"/>
+            
+            <!-- 頭蓋骨 -->
+            <circle cx="20" cy="15" r="8" fill="#eeeeee" filter="url(#boneShadow)"/>
+            
+            <!-- 眼窩（暗黒の炎） -->
+            <circle cx="17" cy="13" r="2.5" fill="#000000"/>
+            <circle cx="23" cy="13" r="2.5" fill="#000000"/>
+            <circle cx="17" cy="13" r="1" fill="#4fc3f7">
+                <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="23" cy="13" r="1" fill="#4fc3f7">
+                <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- 鼻腔 -->
+            <polygon points="20,16 18,18 22,18" fill="#000000"/>
+            
+            <!-- 顎骨 -->
+            <path d="M15 19 Q20 21 25 19" stroke="#e0e0e0" stroke-width="2" fill="none"/>
+            <rect x="17" y="19" width="1" height="2" fill="#ffffff"/>
+            <rect x="19" y="19" width="1" height="2" fill="#ffffff"/>
+            <rect x="21" y="19" width="1" height="2" fill="#ffffff"/>
+            <rect x="23" y="19" width="1" height="2" fill="#ffffff"/>
+            
+            <!-- 骨の腕 -->
+            <rect x="8" y="24" width="6" height="3" fill="#e0e0e0"/>
+            <circle cx="11" cy="25" r="1" fill="#bdbdbd"/>
+            <rect x="26" y="24" width="6" height="3" fill="#e0e0e0"/>
+            <circle cx="29" cy="25" r="1" fill="#bdbdbd"/>
+            
+            <!-- 古いサーベル -->
+            <rect x="33" y="18" width="3" height="15" fill="#616161"/>
+            <rect x="32" y="16" width="5" height="3" fill="#424242"/>
+            <path d="M33 16 L36 16 L35 14" fill="#757575"/>
+            
+            <!-- 不死のオーラ -->
+            <circle cx="20" cy="20" r="18" fill="none" stroke="#4fc3f7" stroke-width="1" opacity="0.4">
+                <animate attributeName="r" values="18;22;18" dur="3s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.4;0.1;0.4" dur="3s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- ガタガタした動きアニメーション -->
+            <animateTransform attributeName="transform" type="rotate" 
+                values="0 20 20; -2 20 20; 2 20 20; 0 20 20" dur="4s" repeatCount="indefinite"/>
+        </svg>
+
+        <!-- 機兵リヴァント（強化型） - 1.1倍 -->
+        <svg id="mech-svg" width="55" height="55" viewBox="0 0 50 50">
+            <defs>
+                <radialGradient id="mechGradient" cx="50%" cy="30%">
+                    <stop offset="0%" style="stop-color:#00e676"/>
+                    <stop offset="100%" style="stop-color:#00c853"/>
+                </radialGradient>
+                <linearGradient id="metalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#37474f"/>
+                    <stop offset="100%" style="stop-color:#263238"/>
+                </linearGradient>
+                <filter id="mechGlow">
+                    <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#00e676"/>
+                </filter>
+                <filter id="energyGlow">
+                    <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#00e5ff"/>
+                </filter>
+            </defs>
+            
+            <!-- 機兵の体（装甲） -->
+            <rect x="17" y="22" width="16" height="20" rx="3" fill="url(#metalGradient)" filter="url(#mechGlow)"/>
+            
+            <!-- 装甲パネル -->
+            <rect x="19" y="24" width="12" height="4" rx="1" fill="#455a64"/>
+            <rect x="19" y="30" width="12" height="4" rx="1" fill="#455a64"/>
+            <rect x="19" y="36" width="12" height="4" rx="1" fill="#455a64"/>
+            
+            <!-- 胸部エネルギーコア -->
+            <circle cx="25" cy="28" r="4" fill="url(#mechGradient)" filter="url(#energyGlow)"/>
+            <circle cx="25" cy="28" r="2" fill="#00e5ff">
+                <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- 機兵の頭部（ヘルメット型） -->
+            <rect x="19" y="12" width="12" height="12" rx="3" fill="url(#metalGradient)" filter="url(#mechGlow)"/>
+            
+            <!-- バイザー -->
+            <rect x="20" y="15" width="10" height="6" rx="2" fill="#000000"/>
+            
+            <!-- 光る目 -->
+            <circle cx="22" cy="17" r="1.5" fill="#00e676">
+                <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="28" cy="17" r="1.5" fill="#00e676">
+                <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- アンテナ -->
+            <rect x="24" y="10" width="2" height="4" fill="#607d8b"/>
+            <circle cx="25" cy="9" r="1" fill="#00e676"/>
+            
+            <!-- 肩部装甲 -->
+            <rect x="12" y="20" width="6" height="8" rx="2" fill="url(#metalGradient)"/>
+            <rect x="32" y="20" width="6" height="8" rx="2" fill="url(#metalGradient)"/>
+            
+            <!-- エネルギー管 -->
+            <rect x="14" y="22" width="2" height="6" fill="#00e676" opacity="0.7"/>
+            <rect x="34" y="22" width="2" height="6" fill="#00e676" opacity="0.7"/>
+            
+            <!-- 腕部（ビーム砲内蔵） -->
+            <rect x="10" y="24" width="8" height="6" rx="2" fill="#37474f"/>
+            <rect x="32" y="24" width="8" height="6" rx="2" fill="#37474f"/>
+            
+            <!-- ビーム砲口 -->
+            <circle cx="8" cy="27" r="2" fill="#000000"/>
+            <circle cx="8" cy="27" r="1" fill="#00e5ff">
+                <animate attributeName="opacity" values="0.5;1;0.5" dur="1s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="42" cy="27" r="2" fill="#000000"/>
+            <circle cx="42" cy="27" r="1" fill="#00e5ff">
+                <animate attributeName="opacity" values="0.5;1;0.5" dur="1s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- 脚部（ブースター付き） -->
+            <rect x="19" y="42" width="5" height="7" rx="1" fill="url(#metalGradient)"/>
+            <rect x="26" y="42" width="5" height="7" rx="1" fill="url(#metalGradient)"/>
+            
+            <!-- ブースターノズル -->
+            <rect x="20" y="49" width="3" height="2" fill="#ff5722"/>
+            <rect x="27" y="49" width="3" height="2" fill="#ff5722"/>
+            
+            <!-- エネルギーフィールド -->
+            <circle cx="25" cy="25" r="22" fill="none" stroke="#00e676" stroke-width="1" opacity="0.3">
+                <animate attributeName="r" values="22;26;22" dur="2s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- 機械的な動きアニメーション -->
+            <animateTransform attributeName="transform" type="translate" 
+                values="0,0; 1,0; -1,0; 0,0" dur="1.8s" repeatCount="indefinite"/>
+        </svg>
+    </div>
+
+    <!-- アクション画面 -->
+    <div id="action-screen" class="screen hidden">
+        <div class="action-info">
+            <p>機兵リヴァントを操作せよ！</p>
+            <p>WASD: 移動 / J: 攻撃 / K: 回転斬り</p>
+            <div>敵残り: <span id="enemy-count">3</span>体</div>
+        </div>
+        
+        <canvas id="action-canvas" width="400" height="300"></canvas>
+        
+        <div class="mobile-controls">
+            <div class="move-pad">
+                <button class="move-btn" data-key="w">↑</button>
+                <div class="move-row">
+                    <button class="move-btn" data-key="a">←</button>
+                    <button class="move-btn" data-key="s">↓</button>
+                    <button class="move-btn" data-key="d">→</button>
+                </div>
+            </div>
+            <div class="action-pad">
+                <button class="action-key" data-key="j">攻撃</button>
+                <button class="action-key" data-key="k">回転斬り</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果画面 -->
+    <div id="result-screen" class="screen hidden">
+        <svg width="200" height="100" viewBox="0 0 200 100" class="result-icon">
+            <g id="victory-icon" class="hidden">
+                <circle cx="100" cy="50" r="40" fill="#4caf50" opacity="0.8"/>
+                <path d="M80 50 L90 60 L120 30" stroke="#ffffff" stroke-width="6" fill="none"/>
+            </g>
+            <g id="defeat-icon" class="hidden">
+                <circle cx="100" cy="50" r="40" fill="#f44336" opacity="0.8"/>
+                <path d="M80 30 L120 70 M120 30 L80 70" stroke="#ffffff" stroke-width="6"/>
+            </g>
+        </svg>
+        <h2 id="result-title">勝利！</h2>
+        <p id="result-text">世界樹に平和が戻った...</p>
+        <div class="result-buttons">
+            <button id="next-stage-btn" class="btn hidden">次のステージ</button>
+            <button id="restart-btn" class="btn">もう一度</button>
+            <button id="title-btn" class="btn">タイトルに戻る</button>
+        </div>
+    </div>
+
+    <!-- 音楽制御 -->
+    <div class="music-control">
+        <button id="music-toggle" class="music-btn">🎵</button>
+        <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.5">
+    </div>
+
+    <!-- 音声ファイル -->
+    <div id="audio-elements" style="display: none;">
+        <!-- BGM -->
+        <audio id="title-bgm" loop>
+            <source src="audio/title_bgm.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="battle-bgm" loop>
+            <source src="audio/battle_bgm.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="clear-bgm" loop>
+            <source src="audio/clear.mp3" type="audio/mpeg">
+        </audio>
+        
+        <!-- SE -->
+        <audio id="attack-se" preload="auto">
+            <source src="audio/attack.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="levelup-se" preload="auto">
+            <source src="audio/levelup.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="fuseikai-se" preload="auto">
+            <source src="audio/fuseikai2.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="seikai-se" preload="auto">
+            <source src="audio/seikai2.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
