@@ -22,7 +22,7 @@ const game = {
 
     // キャラクターの位置とデータ
     units: {
-        player: { x: 1, y: 4, hp: 120, maxHp: 120, symbol: '♠' },
+        player: { x: 1, y: 4, hp: 120, maxHp: 120, level: 1, exp: 0, attack: 40, symbol: '♠' },
         enemies: [],
         mechs: [] // 機兵リスト
     }
@@ -341,8 +341,6 @@ function changeVolume(event) {
 
 // ストーリー画面を表示
 function showStoryScreen() {
-    const selectedStage = parseInt(document.getElementById('stage-selector').value);
-    game.currentStage = selectedStage;
 
     console.log(`ストーリー画面表示 - ステージ${game.currentStage}`);
     hideAllScreens();
@@ -384,8 +382,11 @@ function loadStageData() {
     // ステージ名を表示
     document.getElementById('current-stage').textContent = currentStageData.name;
 
-    // プレイヤーをリセット
-    game.units.player = { x: 1, y: 4, hp: 120, maxHp: 120, symbol: '♠' };
+    // プレイヤー位置とHPをリセット（レベル情報は保持）
+    game.units.player.x = 1;
+    game.units.player.y = 4;
+    game.units.player.hp = game.units.player.maxHp;
+    updatePlayerStatus();
 
     // 敵データをコピー
     game.units.enemies = currentStageData.enemies.map(enemy => ({...enemy}));
@@ -447,9 +448,9 @@ function showResultScreen(isWin) {
         if (game.musicEnabled) {
             audioManager.playBGM('clear');
         }
-        
-        // レベルアップ効果音
-        audioManager.playSE('levelup');
+
+        // 経験値獲得
+        gainExperience(100);
     } else {
         title.textContent = '敗北...';
         title.style.color = '#f44336';
@@ -469,7 +470,6 @@ function showResultScreen(isWin) {
 function nextStage() {
     if (game.currentStage < 10) {
         game.currentStage++;
-        document.getElementById('stage-selector').value = game.currentStage;
         showStoryScreen();
     }
 }
@@ -628,14 +628,15 @@ function handleAttackAction(x, y) {
     if (distance <= 1) {
         const enemy = getEnemyAt(x, y);
         if (enemy) {
-            const damage = 50 + Math.floor(Math.random() * 30); // 50-80ダメージ（大幅強化）
+            const base = game.units.player.attack + game.units.player.level * 5;
+            const damage = base + Math.floor(Math.random() * 20); // レベル依存ダメージ
             enemy.hp -= damage;
             console.log(`${enemy.name}に${damage}ダメージ！ 残りHP: ${enemy.hp}`);
             
             if (enemy.hp <= 0) {
                 console.log(`${enemy.name}を倒した！`);
                 game.summonGauge = Math.min(game.summonGauge + 1, 3);
-                audioManager.playSE('levelup'); // 敵撃破時の効果音
+                gainExperience(20);
             }
             
             audioManager.playSE('attack');
@@ -840,7 +841,7 @@ function processEnemyAction(enemy) {
 
     if (targetDistance <= 1) {
         // 攻撃
-        const damage = 8 + Math.floor(Math.random() * 12); // 8-20ダメージ（弱体化）
+        const damage = 6 + game.currentStage + Math.floor(Math.random() * 8); // ステージ依存ダメージ
         console.log(`${enemy.name}が${target.name || 'プレイヤー'}を攻撃！${damage}ダメージ`);
         target.hp -= damage;
         audioManager.playSE('hit');
@@ -948,6 +949,8 @@ function updateTurnDisplay() {
 function updatePlayerStatus() {
     const playerHp = document.getElementById('player-hp');
     playerHp.textContent = Math.max(0, game.units.player.hp);
+    document.getElementById('player-max-hp').textContent = game.units.player.maxHp;
+    document.getElementById('player-level').textContent = game.units.player.level;
 
     // HPバーの色を変更
     const hpRatio = game.units.player.hp / game.units.player.maxHp;
@@ -958,6 +961,22 @@ function updatePlayerStatus() {
     } else {
         playerHp.style.color = '#f44336';
     }
+}
+
+// 経験値加算とレベルアップ処理
+function gainExperience(amount) {
+    const player = game.units.player;
+    player.exp += amount;
+    const required = player.level * 100;
+    if (player.exp >= required) {
+        player.exp -= required;
+        player.level++;
+        player.maxHp += 10;
+        player.attack += 5;
+        player.hp = player.maxHp;
+        audioManager.playSE('levelup');
+    }
+    updatePlayerStatus();
 }
 
 // アクションゲームの初期化
@@ -1102,6 +1121,7 @@ function performAttack() {
             if (enemy.hp <= 0) {
                 actionGame.enemies.splice(i, 1);
                 updateEnemyCount();
+                gainExperience(10);
             }
         }
     }
@@ -1124,6 +1144,7 @@ function performSpinAttack() {
             actionGame.enemies.splice(i, 1);
             audioManager.playSE('attack');
             updateEnemyCount();
+            gainExperience(10);
         }
     }
 }
