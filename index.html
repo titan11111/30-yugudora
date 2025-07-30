@@ -28,21 +28,6 @@
             </svg>
         </div>
         <button id="start-btn" class="btn">はじめる</button>
-        <div class="stage-select">
-            <label for="stage-selector">ステージ選択:</label>
-            <select id="stage-selector">
-                <option value="1">第1面 - 森の入口</option>
-                <option value="2">第2面 - 古い遺跡</option>
-                <option value="3">第3面 - 暗黒の洞窟</option>
-                <option value="4">第4面 - 氷の神殿</option>
-                <option value="5">第5面 - 炎の火山</option>
-                <option value="6">第6面 - 嵐の高原</option>
-                <option value="7">第7面 - 毒の沼地</option>
-                <option value="8">第8面 - 光の塔</option>
-                <option value="9">第9面 - 闇の城</option>
-                <option value="10">第10面 - 世界樹の根元</option>
-            </select>
-        </div>
     </div>
 
     <!-- ストーリー画面 -->
@@ -77,7 +62,8 @@
                 <span id="summon-gauge">召喚ゲージ: <span id="gauge-value">0</span>/3</span>
             </div>
             <div class="player-status">
-                <span>HP: <span id="player-hp">120</span>/120</span>
+                <span>HP: <span id="player-hp">120</span>/<span id="player-max-hp">120</span></span>
+                <span>LV: <span id="player-level">1</span></span>
             </div>
         </div>
 
@@ -269,8 +255,8 @@
                 values="1,1; 1.05,1.05; 1,1" dur="3s" repeatCount="indefinite"/>
         </svg>
 
-        <!-- ベヒーモス（最終ボス・究極形態） - 1.1倍 -->
-        <svg id="behemoth-svg" width="61" height="61" viewBox="0 0 55 55">
+        <!-- ベヒーモス（最終ボス・究極形態） - 1.2倍 -->
+        <svg id="behemoth-svg" width="66" height="66" viewBox="0 0 55 55">
             <defs>
                 <radialGradient id="behemothGradient" cx="50%" cy="30%">
                     <stop offset="0%" style="stop-color:#1a1a1a"/>

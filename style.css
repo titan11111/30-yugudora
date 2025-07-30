@@ -80,36 +80,6 @@ body {
   filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
 }
 
-/* ステージ選択 */
-.stage-select {
-  margin-top: 30px;
-  background: rgba(0,0,0,0.3);
-  padding: 20px;
-  border-radius: 15px;
-}
-
-.stage-select label {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 1.1em;
-  font-weight: bold;
-}
-
-#stage-selector {
-  background: rgba(255,255,255,0.1);
-  border: 2px solid rgba(255,255,255,0.3);
-  color: white;
-  padding: 10px 15px;
-  border-radius: 10px;
-  font-size: 1em;
-  width: 100%;
-  max-width: 300px;
-}
-
-#stage-selector option {
-  background: #2a2a2a;
-  color: white;
-}
 
 /* ストーリー画面 */
 #story-screen {
