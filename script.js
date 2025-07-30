@@ -806,6 +806,12 @@ function processEnemyTurn() {
     createBattleMap();
     updatePlayerStatus();
 
+    // 敵が全滅していれば勝利
+    if (game.units.enemies.every(e => e.hp <= 0)) {
+        setTimeout(() => showResultScreen(true), 1000);
+        return;
+    }
+
     // プレイヤーターンに戻す
     setTimeout(() => {
         game.playerTurn = true;
