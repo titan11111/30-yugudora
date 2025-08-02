@@ -10,6 +10,9 @@ const game = {
     actionMode: 'none',
     musicEnabled: true,
     currentBGM: null,
+    mechTurn: false,
+    mechTurnOrder: [],
+    mechTurnIndex: 0,
 
     // マップデータ（5x5）
     map: [
@@ -528,6 +531,11 @@ function createBattleMap() {
             mapElement.appendChild(cell);
         }
     }
+
+    const attackLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    attackLayer.setAttribute('id', 'attack-layer');
+    attackLayer.classList.add('attack-layer');
+    mapElement.appendChild(attackLayer);
 }
 
 // セルの内容を取得
@@ -582,6 +590,11 @@ function getEnemySVG(enemyType) {
 
 // セルクリックの処理
 function handleCellClick(x, y) {
+    if (game.mechTurn) {
+        handleMechAttackAction(x, y);
+        return;
+    }
+
     if (!game.playerTurn) return;
 
     console.log(`セルクリック: (${x}, ${y}), モード: ${game.actionMode}`);
@@ -672,6 +685,9 @@ function setActionMode(mode) {
         highlightMovableCells();
     } else if (mode === 'attack') {
         highlightAttackableCells();
+    } else if (mode === 'mech-attack') {
+        highlightAllEnemies();
+        highlightCurrentMech();
     }
 }
 
@@ -713,6 +729,25 @@ function highlightAttackableCells() {
     }
 }
 
+// 全ての敵セルをハイライト
+function highlightAllEnemies() {
+    for (let enemy of game.units.enemies) {
+        if (enemy.hp > 0) {
+            const cell = document.querySelector(`[data-x="${enemy.x}"][data-y="${enemy.y}"]`);
+            if (cell) cell.classList.add('attackable');
+        }
+    }
+}
+
+// 現在行動中の機兵をハイライト
+function highlightCurrentMech() {
+    const mech = game.mechTurnOrder[game.mechTurnIndex];
+    if (mech) {
+        const cell = document.querySelector(`[data-x="${mech.x}"][data-y="${mech.y}"]`);
+        if (cell) cell.classList.add('selected');
+    }
+}
+
 // 指定位置に敵がいるかチェック
 function isEnemyAt(x, y) {
     return game.units.enemies.some(enemy => enemy.x === x && enemy.y === y && enemy.hp > 0);
@@ -721,6 +756,11 @@ function isEnemyAt(x, y) {
 // 指定位置の敵を取得
 function getEnemyAt(x, y) {
     return game.units.enemies.find(enemy => enemy.x === x && enemy.y === y && enemy.hp > 0);
+}
+
+// 敵の攻撃力を算出
+function getEnemyAttackPower() {
+    return 6 + game.currentStage + Math.floor(Math.random() * 8);
 }
 
 // 指定位置が占有されているかチェック
@@ -754,12 +794,13 @@ function startSummonMode() {
             for (let x = 0; x < 5 && !mechPlaced; x++) {
                 if (!isOccupied(x, y)) {
                     // 機兵を配置
+                    const baseAttack = getEnemyAttackPower();
                     game.units.mechs.push({
                         x: x,
                         y: y,
                         hp: 100,
                         maxHp: 100,
-                        attack: 60,
+                        attack: Math.floor(baseAttack / 3),
                         name: '機兵リヴァント'
                     });
                     mechPlaced = true;
@@ -798,12 +839,6 @@ function processEnemyTurn() {
         processEnemyAction(enemy);
     }
 
-    // 機兵の行動処理
-    const aliveMechs = game.units.mechs.filter(mech => mech.hp > 0);
-    for (let mech of aliveMechs) {
-        processMechAction(mech);
-    }
-
     createBattleMap();
     updatePlayerStatus();
 
@@ -813,11 +848,92 @@ function processEnemyTurn() {
         return;
     }
 
-    // プレイヤーターンに戻す
+    const aliveMechs = game.units.mechs.filter(mech => mech.hp > 0);
+    if (aliveMechs.length > 0) {
+        startMechTurn();
+    } else {
+        // プレイヤーターンに戻す
+        setTimeout(() => {
+            game.playerTurn = true;
+            updateTurnDisplay();
+        }, 1500);
+    }
+}
+
+// 機兵のターン開始
+function startMechTurn() {
+    game.mechTurnOrder = game.units.mechs.filter(mech => mech.hp > 0);
+    game.mechTurnIndex = 0;
+    game.mechTurn = true;
+    setActionMode('mech-attack');
+    updateTurnDisplay();
+}
+
+// 機兵による攻撃処理
+function handleMechAttackAction(x, y) {
+    const enemy = getEnemyAt(x, y);
+    const mech = game.mechTurnOrder[game.mechTurnIndex];
+    if (!enemy || !mech) return;
+
+    const damage = mech.attack;
+    enemy.hp -= damage;
+    console.log(`${mech.name}が${enemy.name}にミサイル攻撃！${damage}ダメージ`);
+    audioManager.playSE('attack');
+
+    if (enemy.hp <= 0) {
+        console.log(`${enemy.name}を撃破！`);
+        game.summonGauge = Math.min(game.summonGauge + 1, 3);
+    }
+
+    game.mechTurnIndex++;
+    createBattleMap();
+    updateTurnDisplay();
+    drawAttackLine(mech, enemy);
+
+    if (game.units.enemies.every(e => e.hp <= 0)) {
+        updateTurnDisplay();
+        setTimeout(() => showResultScreen(true), 1000);
+        return;
+    }
+
+    if (game.mechTurnIndex >= game.mechTurnOrder.length) {
+        endMechTurn();
+    } else {
+        setActionMode('mech-attack');
+    }
+}
+
+// 機兵ターン終了
+function endMechTurn() {
+    game.mechTurn = false;
+    game.mechTurnOrder = [];
+    setActionMode('none');
+    updateTurnDisplay();
     setTimeout(() => {
         game.playerTurn = true;
         updateTurnDisplay();
-    }, 1500);
+    }, 500);
+}
+
+// 攻撃ライン描画
+function drawAttackLine(from, to) {
+    const layer = document.getElementById('attack-layer');
+    if (!layer) return;
+    const mapRect = document.getElementById('battle-map').getBoundingClientRect();
+    const fromCell = document.querySelector(`[data-x="${from.x}"][data-y="${from.y}"]`);
+    const toCell = document.querySelector(`[data-x="${to.x}"][data-y="${to.y}"]`);
+    if (!fromCell || !toCell) return;
+    const fromRect = fromCell.getBoundingClientRect();
+    const toRect = toCell.getBoundingClientRect();
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', fromRect.left - mapRect.left + fromRect.width / 2);
+    line.setAttribute('y1', fromRect.top - mapRect.top + fromRect.height / 2);
+    line.setAttribute('x2', toRect.left - mapRect.left + toRect.width / 2);
+    line.setAttribute('y2', toRect.top - mapRect.top + toRect.height / 2);
+    line.setAttribute('stroke', '#ffeb3b');
+    line.setAttribute('stroke-width', '3');
+    layer.appendChild(line);
+    setTimeout(() => line.remove(), 500);
 }
 
 // 敵の個別行動処理
@@ -841,7 +957,7 @@ function processEnemyAction(enemy) {
 
     if (targetDistance <= 1) {
         // 攻撃
-        const damage = 6 + game.currentStage + Math.floor(Math.random() * 8); // ステージ依存ダメージ
+        const damage = getEnemyAttackPower(); // ステージ依存ダメージ
         console.log(`${enemy.name}が${target.name || 'プレイヤー'}を攻撃！${damage}ダメージ`);
         target.hp -= damage;
         audioManager.playSE('hit');
@@ -875,64 +991,13 @@ function processEnemyAction(enemy) {
     }
 }
 
-// 機兵の行動処理
-function processMechAction(mech) {
-    // 最も近い敵を探す
-    let nearestEnemy = null;
-    let shortestDistance = Infinity;
-
-    for (let enemy of game.units.enemies) {
-        if (enemy.hp > 0) {
-            const distance = Math.abs(mech.x - enemy.x) + Math.abs(mech.y - enemy.y);
-            if (distance < shortestDistance) {
-                shortestDistance = distance;
-                nearestEnemy = enemy;
-            }
-        }
-    }
-
-    if (nearestEnemy) {
-        if (shortestDistance <= 1) {
-            // 攻撃
-            const damage = mech.attack + Math.floor(Math.random() * 10); // 基本攻撃力 + ランダム
-            nearestEnemy.hp -= damage;
-            console.log(`${mech.name}が${nearestEnemy.name}を攻撃！${damage}ダメージ`);
-            audioManager.playSE('attack');
-            
-            if (nearestEnemy.hp <= 0) {
-                console.log(`${nearestEnemy.name}を撃破！`);
-                game.summonGauge = Math.min(game.summonGauge + 1, 3);
-            }
-        } else {
-            // 移動（敵に近づく）
-            const dx = nearestEnemy.x - mech.x;
-            const dy = nearestEnemy.y - mech.y;
-            
-            let newX = mech.x;
-            let newY = mech.y;
-            
-            if (Math.abs(dx) > Math.abs(dy)) {
-                newX += dx > 0 ? 1 : -1;
-            } else {
-                newY += dy > 0 ? 1 : -1;
-            }
-            
-            if (newX >= 0 && newX < 5 && newY >= 0 && newY < 5 && !isOccupied(newX, newY)) {
-                mech.x = newX;
-                mech.y = newY;
-                console.log(`${mech.name}が (${newX}, ${newY}) に移動`);
-            }
-        }
-    }
-}
-
 // ターン表示を更新
 function updateTurnDisplay() {
     const turnInfo = document.getElementById('current-turn');
     const gaugeValue = document.getElementById('gauge-value');
     const summonBtn = document.getElementById('summon-btn');
 
-    turnInfo.textContent = game.playerTurn ? 'プレイヤーのターン' : '敵のターン';
+    turnInfo.textContent = game.mechTurn ? '機兵のターン' : (game.playerTurn ? 'プレイヤーのターン' : '敵のターン');
     gaugeValue.textContent = game.summonGauge;
 
     // 召喚ボタンの有効/無効
