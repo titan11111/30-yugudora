@@ -14,18 +14,19 @@ const game = {
     mechTurnOrder: [],
     mechTurnIndex: 0,
 
-    // マップデータ（5x5）
+    // マップデータ（6x6）
     map: [
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0]
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0]
     ],
 
     // キャラクターの位置とデータ
     units: {
-        player: { x: 1, y: 4, hp: 120, maxHp: 120, level: 1, exp: 0, attack: 40, symbol: '♠' },
+        player: { x: 1, y: 5, hp: 120, maxHp: 120, level: 1, exp: 0, attack: 40, symbol: '♠' },
         enemies: [],
         mechs: [] // 機兵リスト
     }
@@ -387,7 +388,7 @@ function loadStageData() {
 
     // プレイヤー位置とHPをリセット（レベル情報は保持）
     game.units.player.x = 1;
-    game.units.player.y = 4;
+    game.units.player.y = 5;
     game.units.player.hp = game.units.player.maxHp;
     updatePlayerStatus();
 
@@ -512,9 +513,9 @@ function createBattleMap() {
     const mapElement = document.getElementById('battle-map');
     mapElement.innerHTML = '';
 
-    // 5x5のマスを作成
-    for (let y = 0; y < 5; y++) {
-        for (let x = 0; x < 5; x++) {
+    // 6x6のマスを作成
+    for (let y = 0; y < 6; y++) {
+        for (let x = 0; x < 6; x++) {
             const cell = document.createElement('div');
             cell.className = 'map-cell';
             cell.dataset.x = x;
@@ -703,8 +704,8 @@ function clearCellHighlights() {
 function highlightMovableCells() {
     const player = game.units.player;
 
-    for (let y = 0; y < 5; y++) {
-        for (let x = 0; x < 5; x++) {
+    for (let y = 0; y < 6; y++) {
+        for (let x = 0; x < 6; x++) {
             const distance = Math.abs(x - player.x) + Math.abs(y - player.y);
             if (distance <= 2 && !isOccupied(x, y)) {
                 const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
@@ -718,8 +719,8 @@ function highlightMovableCells() {
 function highlightAttackableCells() {
     const player = game.units.player;
 
-    for (let y = 0; y < 5; y++) {
-        for (let x = 0; x < 5; x++) {
+    for (let y = 0; y < 6; y++) {
+        for (let x = 0; x < 6; x++) {
             const distance = Math.abs(x - player.x) + Math.abs(y - player.y);
             if (distance <= 1 && isEnemyAt(x, y)) {
                 const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
@@ -790,8 +791,8 @@ function startSummonMode() {
         
         // 空いているセルを探して機兵を配置
         let mechPlaced = false;
-        for (let y = 0; y < 5 && !mechPlaced; y++) {
-            for (let x = 0; x < 5 && !mechPlaced; x++) {
+        for (let y = 0; y < 6 && !mechPlaced; y++) {
+            for (let x = 0; x < 6 && !mechPlaced; x++) {
                 if (!isOccupied(x, y)) {
                     // 機兵を配置
                     const baseAttack = getEnemyAttackPower();
@@ -983,7 +984,7 @@ function processEnemyAction(enemy) {
         }
         
         // 移動先が範囲内で、他のユニットがいない場合のみ移動
-        if (newX >= 0 && newX < 5 && newY >= 0 && newY < 5 && !isOccupied(newX, newY)) {
+        if (newX >= 0 && newX < 6 && newY >= 0 && newY < 6 && !isOccupied(newX, newY)) {
             enemy.x = newX;
             enemy.y = newY;
             console.log(`${enemy.name}が (${newX}, ${newY}) に移動`);
