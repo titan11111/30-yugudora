@@ -243,7 +243,7 @@ const stageData = {
         name: "第10面 - 世界樹の根元",
         story: "世界樹を蝕む最終ボス、ベヒーモス...",
         enemies: [
-            { x: 2, y: 1, hp: 120, maxHp: 120, symbol: '👹', type: 'behemoth', name: 'ベヒーモス' },
+            { x: 2, y: 1, hp: 120, maxHp: 120, symbol: '👹', type: 'behemoth', name: 'ベヒーモス', size: 2 },
             { x: 0, y: 0, hp: 80, maxHp: 80, symbol: '🐉', type: 'phoenix', name: 'ダークフェニックス' },
             { x: 4, y: 0, hp: 80, maxHp: 80, symbol: '🐉', type: 'phoenix', name: 'ダークフェニックス' },
             { x: 1, y: 2, hp: 70, maxHp: 70, symbol: '💀', type: 'lich', name: 'リッチロード' },
@@ -555,7 +555,7 @@ function getCellContent(x, y) {
 
     // 敵の位置チェック
     for (let enemy of game.units.enemies) {
-        if (enemy.x === x && enemy.y === y && enemy.hp > 0) {
+        if (occupiesCell(enemy, x, y)) {
             return { symbol: getEnemySVG(enemy.type), type: enemy.type };
         }
     }
@@ -587,6 +587,25 @@ function getEnemySVG(enemyType) {
         default:
             return '👹'; // デフォルト
     }
+}
+
+// 指定した敵が座標(x, y)を占有しているか
+function occupiesCell(enemy, x, y) {
+    const size = enemy.size || 1;
+    return x >= enemy.x && x < enemy.x + size && y >= enemy.y && y < enemy.y + size && enemy.hp > 0;
+}
+
+// 敵とターゲットの最小距離を計算
+function getMinDistance(enemy, target) {
+    const size = enemy.size || 1;
+    let minDist = Infinity;
+    for (let dx = 0; dx < size; dx++) {
+        for (let dy = 0; dy < size; dy++) {
+            const dist = Math.abs(enemy.x + dx - target.x) + Math.abs(enemy.y + dy - target.y);
+            if (dist < minDist) minDist = dist;
+        }
+    }
+    return minDist;
 }
 
 // セルクリックの処理
@@ -734,8 +753,13 @@ function highlightAttackableCells() {
 function highlightAllEnemies() {
     for (let enemy of game.units.enemies) {
         if (enemy.hp > 0) {
-            const cell = document.querySelector(`[data-x="${enemy.x}"][data-y="${enemy.y}"]`);
-            if (cell) cell.classList.add('attackable');
+            const size = enemy.size || 1;
+            for (let dx = 0; dx < size; dx++) {
+                for (let dy = 0; dy < size; dy++) {
+                    const cell = document.querySelector(`[data-x="${enemy.x + dx}"][data-y="${enemy.y + dy}"]`);
+                    if (cell) cell.classList.add('attackable');
+                }
+            }
         }
     }
 }
@@ -751,12 +775,12 @@ function highlightCurrentMech() {
 
 // 指定位置に敵がいるかチェック
 function isEnemyAt(x, y) {
-    return game.units.enemies.some(enemy => enemy.x === x && enemy.y === y && enemy.hp > 0);
+    return game.units.enemies.some(enemy => occupiesCell(enemy, x, y));
 }
 
 // 指定位置の敵を取得
 function getEnemyAt(x, y) {
-    return game.units.enemies.find(enemy => enemy.x === x && enemy.y === y && enemy.hp > 0);
+    return game.units.enemies.find(enemy => occupiesCell(enemy, x, y));
 }
 
 // 敵の攻撃力を算出
@@ -770,7 +794,7 @@ function isOccupied(x, y) {
     if (game.units.player.x === x && game.units.player.y === y) return true;
 
     // 敵がいる
-    if (game.units.enemies.some(enemy => enemy.x === x && enemy.y === y && enemy.hp > 0)) return true;
+    if (game.units.enemies.some(enemy => occupiesCell(enemy, x, y))) return true;
 
     // 機兵がいる
     if (game.units.mechs.some(mech => mech.x === x && mech.y === y && mech.hp > 0)) return true;
@@ -789,25 +813,27 @@ function startSummonMode() {
     if (game.summonGauge >= 3) {
         console.log('機兵召喚！');
         
-        // 空いているセルを探して機兵を配置
-        let mechPlaced = false;
-        for (let y = 0; y < 6 && !mechPlaced; y++) {
-            for (let x = 0; x < 6 && !mechPlaced; x++) {
+        // 空いているセルをランダムに選択して機兵を配置
+        const emptyCells = [];
+        for (let y = 0; y < 6; y++) {
+            for (let x = 0; x < 6; x++) {
                 if (!isOccupied(x, y)) {
-                    // 機兵を配置
-                    const baseAttack = getEnemyAttackPower();
-                    game.units.mechs.push({
-                        x: x,
-                        y: y,
-                        hp: 100,
-                        maxHp: 100,
-                        attack: Math.floor(baseAttack / 3),
-                        name: '機兵リヴァント'
-                    });
-                    mechPlaced = true;
-                    console.log(`機兵を(${x}, ${y})に配置`);
+                    emptyCells.push({ x, y });
                 }
             }
+        }
+        if (emptyCells.length > 0) {
+            const choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            const baseAttack = getEnemyAttackPower();
+            game.units.mechs.push({
+                x: choice.x,
+                y: choice.y,
+                hp: 100,
+                maxHp: 100,
+                attack: Math.floor(baseAttack / 3),
+                name: '機兵リヴァント'
+            });
+            console.log(`機兵を(${choice.x}, ${choice.y})に配置`);
         }
         
         game.summonGauge = 0; // ゲージをリセット
@@ -940,7 +966,7 @@ function drawAttackLine(from, to) {
 // 敵の個別行動処理
 function processEnemyAction(enemy) {
     const player = game.units.player;
-    const distanceToPlayer = Math.abs(enemy.x - player.x) + Math.abs(enemy.y - player.y);
+    const distanceToPlayer = getMinDistance(enemy, player);
 
     // 機兵への距離もチェック
     let targetDistance = distanceToPlayer;
@@ -948,7 +974,7 @@ function processEnemyAction(enemy) {
 
     for (let mech of game.units.mechs) {
         if (mech.hp > 0) {
-            const distanceToMech = Math.abs(enemy.x - mech.x) + Math.abs(enemy.y - mech.y);
+            const distanceToMech = getMinDistance(enemy, mech);
             if (distanceToMech < targetDistance) {
                 targetDistance = distanceToMech;
                 target = mech;
@@ -969,25 +995,27 @@ function processEnemyAction(enemy) {
             return;
         }
     } else if (targetDistance > 1) {
-        // 移動（ターゲットに近づく）
-        const dx = target.x - enemy.x;
-        const dy = target.y - enemy.y;
-        
-        let newX = enemy.x;
-        let newY = enemy.y;
-        
-        // ターゲットに近づく方向を決定
-        if (Math.abs(dx) > Math.abs(dy)) {
-            newX += dx > 0 ? 1 : -1;
-        } else {
-            newY += dy > 0 ? 1 : -1;
-        }
-        
-        // 移動先が範囲内で、他のユニットがいない場合のみ移動
-        if (newX >= 0 && newX < 6 && newY >= 0 && newY < 6 && !isOccupied(newX, newY)) {
-            enemy.x = newX;
-            enemy.y = newY;
-            console.log(`${enemy.name}が (${newX}, ${newY}) に移動`);
+        // サイズ1の敵のみ移動
+        if ((enemy.size || 1) === 1) {
+            const dx = target.x - enemy.x;
+            const dy = target.y - enemy.y;
+
+            let newX = enemy.x;
+            let newY = enemy.y;
+
+            // ターゲットに近づく方向を決定
+            if (Math.abs(dx) > Math.abs(dy)) {
+                newX += dx > 0 ? 1 : -1;
+            } else {
+                newY += dy > 0 ? 1 : -1;
+            }
+
+            // 移動先が範囲内で、他のユニットがいない場合のみ移動
+            if (newX >= 0 && newX < 6 && newY >= 0 && newY < 6 && !isOccupied(newX, newY)) {
+                enemy.x = newX;
+                enemy.y = newY;
+                console.log(`${enemy.name}が (${newX}, ${newY}) に移動`);
+            }
         }
     }
 }
